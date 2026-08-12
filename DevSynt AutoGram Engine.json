@@ -1,0 +1,656 @@
+{
+  "name": "DevSynt AutoGram Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "fd9ae3de-1827-477b-95af-f2d5e2833b14",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "supabase_url",
+              "type": "string",
+              "value": "<__PLACEHOLDER_VALUE__Supabase project URL, e.g. https://xxxx.supabase.co__>"
+            },
+            {
+              "id": "a2",
+              "name": "storage_bucket",
+              "type": "string",
+              "value": "social-images"
+            },
+            {
+              "id": "a3",
+              "name": "drive_folder_id",
+              "type": "string",
+              "value": "<__PLACEHOLDER_VALUE__Google Drive folder ID to watch__>"
+            },
+            {
+              "id": "a4",
+              "name": "ig_user_id",
+              "type": "string",
+              "value": "<__PLACEHOLDER_VALUE__Instagram Business/Creator user ID (IG_USER_ID)__>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "27d3ff59-b2c7-4e52-af3f-2375ed83892f",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        272
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "='me' in owners and '{{ $('Config').first().json.drive_folder_id }}' in parents and mimeType contains 'image/'",
+        "limit": 10,
+        "filter": {},
+        "options": {}
+      },
+      "id": "38843b1c-64a4-425d-8a37-fad3f4e8b916",
+      "name": "Search Drive Images",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        448,
+        272
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "cc63fa52-33c5-4667-9a36-c4a28228ca22",
+      "name": "Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "posted_images",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "file_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Loop Over Files').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "c98609d2-14ef-4fd1-9612-92d574b440f1",
+      "name": "Check Already Posted",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        896,
+        192
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e4a15f29-a292-4d5f-ad6c-1e808e8c31fd",
+      "name": "Is New Image",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Loop Over Files').item.json.id }}"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "4557b5ba-e133-4d73-82cb-1813bf6c4724",
+      "name": "Download Image",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "file_id",
+              "type": "string",
+              "value": "={{ $('Loop Over Files').item.json.id }}"
+            },
+            {
+              "id": "p2",
+              "name": "filename",
+              "type": "string",
+              "value": "={{ $('Loop Over Files').item.json.name }}"
+            },
+            {
+              "id": "p3",
+              "name": "object_path",
+              "type": "string",
+              "value": "={{ $('Loop Over Files').item.json.id }}-{{ $('Loop Over Files').item.json.name }}"
+            },
+            {
+              "id": "p4",
+              "name": "public_url",
+              "type": "string",
+              "value": "={{ $('Config').first().json.supabase_url }}/storage/v1/object/public/{{ $('Config').first().json.storage_bucket }}/{{ $('Loop Over Files').item.json.id }}-{{ $('Loop Over Files').item.json.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9f79cef7-3b45-472e-9486-680822f71866",
+      "name": "Prepare Upload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1568,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/storage/v1/object/{{ $('Config').first().json.storage_bucket }}/{{ $json.object_path }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-upsert",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "06e45538-9c83-423f-9ee8-4428251ef9da",
+      "name": "Upload to Supabase Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1792,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-2.5-flash",
+          "cachedResultName": "gemini-2.5-flash"
+        },
+        "text": "Analyze this image and generate an Instagram caption and 20 hashtags.\nFormat exactly:\nCAPTION: [120-180 characters]\nHASHTAGS: [20 hashtags separated by spaces, each starting with #]",
+        "imageUrls": "={{ $('Prepare Upload').item.json.public_url }}",
+        "options": {
+          "maxOutputTokens": 500
+        }
+      },
+      "id": "d71b6c0a-55d5-4f9a-ab68-110be3bafbba",
+      "name": "Generate Caption",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        2016,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const g = $json;\nlet raw = '';\nif (typeof g === 'string') { raw = g; }\nelse { raw = g.text || g.content || g.response || (g.content && g.content.parts && g.content.parts[0] && g.content.parts[0].text) || (g.candidates && g.candidates[0] && g.candidates[0].content && g.candidates[0].content.parts && g.candidates[0].content.parts[0] && g.candidates[0].content.parts[0].text) || ''; }\nif (typeof raw !== 'string') { raw = JSON.stringify(raw); }\nlet caption = '';\nlet hashtags = [];\nconst capMatch = raw.match(/CAPTION:\\s*([\\s\\S]*?)(?:HASHTAGS:|$)/i);\nif (capMatch) { caption = capMatch[1].trim(); }\nconst tagMatch = raw.match(/HASHTAGS:\\s*([\\s\\S]*)/i);\nif (tagMatch) { hashtags = (tagMatch[1].match(/#[A-Za-z0-9_]+/g) || []); }\nif (!caption) { caption = raw.trim().slice(0, 180); }\nconst prep = $('Prepare Upload').item.json;\nconst hashtags_str = hashtags.join(' ');\nconst pg = '{' + hashtags.map(function(h){ return '\"' + h.replace(/\"/g, '') + '\"'; }).join(',') + '}';\nreturn { json: { file_id: prep.file_id, filename: prep.filename, public_url: prep.public_url, caption: caption, hashtags: hashtags, hashtags_str: hashtags_str, hashtags_pg: pg, full_caption: (caption + '\\n\\n' + hashtags_str).trim() } };"
+      },
+      "id": "25e7b36a-8d08-4b92-95a8-e6a78758875d",
+      "name": "Parse Caption",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Config').first().json.ig_user_id }}/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.public_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.full_caption }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "818d8680-c6b9-44c9-adfc-9eadc36278d8",
+      "name": "IG Create Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2464,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Config').first().json.ig_user_id }}/media_publish",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7a8e7008-00f5-476f-aa8c-8b0407532901",
+      "name": "IG Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2688,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "posted_images",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "file_id",
+              "fieldValue": "={{ $('Parse Caption').item.json.file_id }}"
+            },
+            {
+              "fieldId": "filename",
+              "fieldValue": "={{ $('Parse Caption').item.json.filename }}"
+            },
+            {
+              "fieldId": "image_url",
+              "fieldValue": "={{ $('Parse Caption').item.json.public_url }}"
+            },
+            {
+              "fieldId": "caption",
+              "fieldValue": "={{ $('Parse Caption').item.json.caption }}"
+            },
+            {
+              "fieldId": "hashtags",
+              "fieldValue": "={{ $('Parse Caption').item.json.hashtags_pg }}"
+            },
+            {
+              "fieldId": "ig_post_id",
+              "fieldValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "c253f17c-d77c-4f51-912e-ebf402e2761d",
+      "name": "Log Post",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "beb886d2-e308-44b1-9623-7fdf8d1814e9",
+      "name": "Loop Over Files",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        672,
+        272
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f67e5c33-e67d-4fa2-b0f0-c2cb69507143",
+      "name": "On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "error_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "error_stage",
+              "fieldValue": "={{ $json.execution.lastNodeExecuted }}"
+            },
+            {
+              "fieldId": "error_message",
+              "fieldValue": "={{ $json.execution.error.message }}"
+            }
+          ]
+        }
+      },
+      "id": "e54bafd3-b042-437b-a70f-c3fc0a7644bd",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "<__PLACEHOLDER_VALUE__Alert sender email (from)__>",
+        "toEmail": "<__PLACEHOLDER_VALUE__Alert recipient email (to)__>",
+        "subject": "=AutoGram Engine failed: {{ $json.workflow.name }}",
+        "emailFormat": "text",
+        "text": "=Workflow \"{{ $json.workflow.name }}\" failed.\n\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nExecution ID: {{ $json.execution.id }}",
+        "options": {}
+      },
+      "id": "4fe7a603-32bb-4744-bfed-f2ad8e3d0f3d",
+      "name": "Send Error Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        496
+      ],
+      "webhookId": "c6be5455-8696-45b5-8c5d-2f68fbbb4c8d"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Search Drive Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Drive Images": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Already Posted": {
+      "main": [
+        [
+          {
+            "node": "Is New Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Image": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Prepare Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload to Supabase Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Supabase Storage": {
+      "main": [
+        [
+          {
+            "node": "Generate Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Caption": {
+      "main": [
+        [
+          {
+            "node": "Parse Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Caption": {
+      "main": [
+        [
+          {
+            "node": "IG Create Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Create Container": {
+      "main": [
+        [
+          {
+            "node": "IG Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG Publish": {
+      "main": [
+        [
+          {
+            "node": "Log Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Post": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Files": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Already Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Send Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d3b5d9ed-f6cf-41bd-936b-9ee8798ea194",
+  "meta": {
+    "instanceId": "897f46843b277998deaad040441eff0456f570af935678409dd666d4a0060b37"
+  },
+  "nodeGroups": [],
+  "id": "HXxdq8fCfStldtlc",
+  "tags": []
+}
