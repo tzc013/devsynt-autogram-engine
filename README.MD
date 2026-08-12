@@ -364,12 +364,3 @@ By completing this project, I demonstrated:
 *Version 1.0 | Last Updated: 2026 | DevSynt Technologies*
 
 ---
-
-## How to Use This README
-
-1. **Replace `yourusername`** in the clone URL with your actual GitHub username
-2. **Add your screenshots** in the `screenshots/` folder
-3. **Fill in `.env`** with your actual credentials (never commit this file)
-4. **Share the repository link** in the WhatsApp community
-
----
